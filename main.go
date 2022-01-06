@@ -30,67 +30,58 @@ func main() {
 func dirTree(out io.Writer, path string, files bool) error {
 	var text = ""
 	filesFromDisk, _ := os.ReadDir(path)
-	getDir(path, filesFromDisk, files, 0, &text)
+	getDir(path, filesFromDisk, files, 0, 0, &text)
 
 	fmt.Fprintln(out, text)
 
 	return nil
 }
 
-func getDir(path string, filesFromDisk []os.DirEntry, files bool, countTab int, text *string) {
+func getDir(path string, filesFromDisk []os.DirEntry, files bool, countTab int, countTabLast int, text *string) {
 	lenFiles := len(filesFromDisk)
-	for i := 0; i < lenFiles - 1; i++  {
+	for i := 0; i < lenFiles-1; i++ {
 		if filesFromDisk[i].IsDir() {
-			*text +=  newLine + getTab(countTab) + verticalSlash + firstSymbol + filesFromDisk[i].Name()
-			newPath := path+`\`+filesFromDisk[i].Name()
+			getDirName(countTab, countTabLast, filesFromDisk[i], text)
+			newPath := path + `\` + filesFromDisk[i].Name()
 			newFilesFromDisk, _ := os.ReadDir(newPath)
-			getDir(newPath, newFilesFromDisk, files, countTab+1, text)
+			getDir(newPath, newFilesFromDisk, files, countTab+1, countTabLast, text)
 		} else if files {
-			getFile(countTab + 1, filesFromDisk[i], text, firstSymbol)
+			getFileName(countTab, countTabLast, filesFromDisk[i], text)
 		}
 	}
 
-	if lenFiles > 0 && filesFromDisk[lenFiles - 1].IsDir() {
-		newPath := path+`\`+filesFromDisk[lenFiles - 1].Name()
+	if lenFiles > 0 && filesFromDisk[lenFiles-1].IsDir() {
+		newPath := path + `\` + filesFromDisk[lenFiles-1].Name()
 		newFilesFromDisk, _ := os.ReadDir(newPath)
-		if len(newFilesFromDisk) > 1 {
-			*text +=  newLine + getTabLast(countTab)  + lastSymbol + filesFromDisk[lenFiles - 1].Name()
-		} else  {
-			*text +=  newLine + getTab(countTab)  + lastSymbol + filesFromDisk[lenFiles - 1].Name()
-		}
-		getDir(newPath, newFilesFromDisk, files, countTab+1, text)
+		getDirName(countTab, countTabLast, filesFromDisk[lenFiles-1], text)
+		getDir(newPath, newFilesFromDisk, files, countTab, countTabLast+1, text)
 	} else if files {
-		getFileLast(countTab + 1, filesFromDisk[lenFiles - 1], text, lastSymbol)
+		getFileName(countTab, countTabLast, filesFromDisk[lenFiles-1], text)
 	}
-}
-
-func getFile(path int, file os.DirEntry, text *string, symbol string) {
-	fileInfo, _ := file.Info()
-	size := strconv.Itoa(int(fileInfo.Size()))
-	*text += newLine + getTab(path) + tabSymbol + symbol + file.Name() + " (" + size +"b)" + newLine
-}
-
-func getFileLast(path int, file os.DirEntry, text *string, symbol string) {
-	fileInfo, _ := file.Info()
-	size := strconv.Itoa(int(fileInfo.Size()))
-	*text += newLine + getTabLast(path) + tabSymbol + symbol + file.Name() + " (" + size +"b)" + newLine
 }
 
 func getFileName(countTab int, countTabLast int, file os.DirEntry, text *string) {
 	fileInfo, _ := file.Info()
 	size := int(fileInfo.Size())
-	symbol := verticalSlash+firstSymbol
+	sizeText := ""
+	if size > 0 {
+		sizeText = " (" + strconv.Itoa(int(fileInfo.Size())) + "b)"
+	} else {
+		sizeText = " (empty)"
+	}
+	*text += getName(countTab, countTabLast, file) + sizeText + newLine
+}
+
+func getDirName(countTab int, countTabLast int, file os.DirEntry, text *string) {
+	*text += getName(countTab, countTabLast, file) + newLine
+}
+
+func getName(countTab int, countTabLast int, file os.DirEntry) string {
+	symbol := verticalSlash + firstSymbol
 	if countTabLast > 0 {
 		symbol = lastSymbol
 	}
-	sizeText := ""
-	if size > 0 {
-		sizeText = " (" + strconv.Itoa(int(fileInfo.Size())) +"b)"
-	} else {
-
-		sizeText = " (empty)"
-	}
-	*text += newLine + getTab(countTab) +  getTabLast(countTabLast) + tabSymbol + symbol + file.Name() + sizeText + newLine
+	return getTab(countTab) + getTabLast(countTabLast) + symbol + file.Name()
 }
 
 func getTab(count int) string {
